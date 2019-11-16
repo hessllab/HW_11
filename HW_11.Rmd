@@ -17,6 +17,36 @@ library(kableExtra)
 data(Titanic) will return a 4-d array resulting from the cross-tabulation of 2201 observations on 4 variables.  The data were originally collected by the British Board of Trade in their investigations related to the sinking of the Titanic.
 
 **1) Using the R data Titanic, use apply to answer the following:**  
+```{r}
+dat_titanic <- as.data.frame(Titanic)
+```
+calculate total number
+```{r}
+adults_total <- sum(dat_titanic[dat_titanic$Age=="Adult", ]$Freq)
+children_total <- sum(dat_titanic[dat_titanic$Age=="Child", ]$Freq)
+female_total <- sum(dat_titanic[dat_titanic$Sex=="Female", ]$Freq)
+male_total <- sum(dat_titanic[dat_titanic$Sex=="Male", ]$Freq)
+
+total <- c(adults_total,children_total,female_total,male_total)
+matrix <- data.frame(Total = total, row.names = c("Adult", "Child", "Female", "Male"))
+```
+
+How many survived?
+```{r}
+adults_Sur <- sum(dat_titanic[dat_titanic$Age=="Adult" & dat_titanic$Survived=="Yes", ]$Freq)
+children_Sur <- sum(dat_titanic[dat_titanic$Age=="Child" & dat_titanic$Survived=="Yes", ]$Freq)
+female_Sur <- sum(dat_titanic[dat_titanic$Sex=="Female" & dat_titanic$Survived=="Yes", ]$Freq)
+male_Sur <- sum(dat_titanic[dat_titanic$Sex=="Male" & dat_titanic$Survived=="Yes", ]$Freq)
+
+survived <- c(adults_Sur,children_Sur,female_Sur,male_Sur)
+matrix <- cbind(matrix, Survived = survived)
+```
+
+Survival rates for all rows
+```{r}
+matrix$Rates <- matrix$Survived/matrix$Total
+```
+
 
 + Were rates of survival higher among children or adults?  
 + Were rates of survival higher among men or women?  
