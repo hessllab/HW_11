@@ -9,91 +9,58 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r, include=FALSE}
-library(kableExtra)
+```{r eval=FALSE}
+# To run the following answer, please install "kableExtra", "rnoaa" and "lubridate" packages if you haven't installed them.
+install.packages("kableExtra")
+install.packages("rnoaa")
+install.packages("lubridate")
 ```
 
 #### apply
 data(Titanic) will return a 4-d array resulting from the cross-tabulation of 2201 observations on 4 variables.  The data were originally collected by the British Board of Trade in their investigations related to the sinking of the Titanic.
 
 **1) Using the R data Titanic, use apply to answer the following:**  
-```{r}
-dat_titanic <- as.data.frame(Titanic)
-```
-calculate total number
-```{r}
-adults_total <- sum(dat_titanic[dat_titanic$Age=="Adult", ]$Freq)
-children_total <- sum(dat_titanic[dat_titanic$Age=="Child", ]$Freq)
-female_total <- sum(dat_titanic[dat_titanic$Sex=="Female", ]$Freq)
-male_total <- sum(dat_titanic[dat_titanic$Sex=="Male", ]$Freq)
++ Were rates of survival higher among children or adults?
+```{r}  
+survival_byAge <- apply(Titanic, c(3, 4), sum)
+children_rate <- survival_byAge[3]/(survival_byAge[1]+survival_byAge[3])
+adults_rate <- survival_byAge[4]/(survival_byAge[2]+survival_byAge[4])
 
-total <- c(adults_total,children_total,female_total,male_total)
-matrix <- data.frame(Total = total, row.names = c("Adult", "Child", "Female", "Male"))
-```
+children_rate
+adults_rate
+```  
 
-How many survived?
-```{r}
-adults_Sur <- sum(dat_titanic[dat_titanic$Age=="Adult" & dat_titanic$Survived=="Yes", ]$Freq)
-children_Sur <- sum(dat_titanic[dat_titanic$Age=="Child" & dat_titanic$Survived=="Yes", ]$Freq)
-female_Sur <- sum(dat_titanic[dat_titanic$Sex=="Female" & dat_titanic$Survived=="Yes", ]$Freq)
-male_Sur <- sum(dat_titanic[dat_titanic$Sex=="Male" & dat_titanic$Survived=="Yes", ]$Freq)
++ Were rates of survival higher among men or women? 
+```{r}  
+survival_byGender <- apply(Titanic, c(2, 4), sum)
+male_rate <- survival_byGender[3]/(survival_byGender[1,3])
+female_rate <- survival_byGender[4]/(survival_byGender[2]+survival_byGender[4])
 
-survived <- c(adults_Sur,children_Sur,female_Sur,male_Sur)
-matrix <- cbind(matrix, Survived = survived)
-```
-
-Survival rates for all rows
-```{r}
-matrix$Rates <- matrix$Survived/matrix$Total
-```
-
-
-```{r}
-dat_age <- apply(Titanic, c(3, 4), sum)
-child_rate <- dat_age[3]/(dat_age[1]+dat_age[3])
-adult_rate <- dat_age[4]/(dat_age[2]+dat_age[4])
-child_rate >= adult_rate
-```
-```{r}
-dat_sex <- apply(Titanic, c(2, 4), sum)
-female_rate <- dat_sex[4]/(dat_sex[2]+dat_sex[4])
-male_rate <- dat_sex[3]/(dat_sex[1]+dat_sex[3])
-female_rate >= male_rate
-```
-
-+ Were rates of survival higher among children or adults?  
-+ Were rates of survival higher among men or women?  
+male_rate
+female_rate
+```  
 
 #### lapply
 **2) Some insect species can only survive if daily temperatures stay above some temperature.  Write a function that takes two arguments, a data frame and a temperature that returns a TRUE when the tmin > X and a FALSE when tmin is < X, where X is the threshold temperature.  Have the function then add a logical vector to each daily climate data frame reporting whether that threshold was exceeded (TRUE) or not (FALSE). Apply this function across all three of the daily data frames provided in /data. For each data frame, your results might look like:**
 ```{r}
+library(kableExtra)
+
 threshold_eval <- function(Data, Temp){
-  thresh_vector <- Data$tmin..degrees.C. > Temp
+  thresh_vector <- Data$tmin > Temp
   table_output <- cbind(Data, thresh=thresh_vector)
   kable(table_output) %>%
     kable_styling()
 }
 
-apply_threshold_eval <- function(Path, Temp){
+threshold_eval_lapply <- function(Path, Temp){
   glob.path <- paste0(Path, "*", ".csv")
-  dataFile <- lapply(Sys.glob(glob.path), read.csv, skip=10)
-  lapply(dataFile, threshold_eval, Temp)
+  dataFiles <- lapply(Sys.glob(glob.path), read.csv, col.names = c("pdate",  "ppt",    "tmin",   "tmean",  "tmax"), skip=10)
+  lapply(dataFiles, threshold_eval, Temp)
 }
 ```
 ```{r}
 # Usage example
-apply_threshold_eval(Path = "./data/", Temp = 10)
-```
-
-
-```{r, echo = FALSE}
-col_names <- c("pdate",  "ppt",    "tmin",   "tmean",  "tmax",   "thresh")
-vals <- c(1981-01-01, 3.78, -4.3,  -1.9,  0.5,  "FALSE")
-names(vals) <- col_names
-my_table <- data.frame(t(vals))
-my_table %>%
-  kable() %>%
-  kable_styling()
+threshold_eval_lapply(Path = "./data/", Temp = 5)
 ```
 
 *Hints:*  
@@ -103,29 +70,26 @@ my_table %>%
 + Write an apply function to 'apply' your function across all the data frames in the list.  
 
 **3) Write a loop to extract Cape Grim monthly temperature data (GHCN) for 1985-2019 using rnoaa.**
+
+Somehow, data downloaded by year is shorter than the data downloaded by month. The missing data are shown after the answer for this question. This is why our answer is written to download data by month, which is computationary heavier but more accurate.
+ 
+```{r}
+data_test <- data.frame()
+
+for(Year in 1985:2019){
+  data1 <- ncdc(datasetid='GSOM', stationid = 'GHCND:ASN00091245', datatypeid= c('TMAX', 'TMIN', 'TAVG'), startdate = paste(Year, "01", "01", sep = "-"), enddate = paste(Year, "12", "31", sep = "-"))
+  data_test <- rbind(data_test, data1[[2]])
+  }
+```
+
 ```{r}
 library(rnoaa)
 library(lubridate)
 source("APIkey.Rprofile")
-```
-Datatype ID?
 
-```{r}
-# this works!
-data1 <- ncdc(datasetid='GSOM', stationid = 'GHCND:ASN00091245', datatypeid= c('TMAX', 'TMIN', 'TAVG'), startdate = "1985-09-01", enddate = "1985-09-30")
-data <- data1[[2]]
+data <- data.frame()
 
-for (Mon in 0:2) {
-  oct1 <- ymd(paste(1985, "10", "01", sep = "-"))
-  monstat <- oct1 %m+% months(Mon)
-  oct31 <- ymd(paste(1985, "10", "31", sep = "-"))
-  monend <- oct31 %m+% months(Mon)
-  
-  data1 <- ncdc(datasetid='GSOM', stationid = 'GHCND:ASN00091245', datatypeid= c('TMAX', 'TMIN', 'TAVG'), startdate = monstat, enddate = monend)
-  data <- rbind(data, data1[[2]])
-}
-
-for(Year in 1986:2019){
+for(Year in 1985:2019){
   for (Mon in 0:11) {
   jan1 <- ymd(paste(Year, "01", "01", sep = "-"))
   monstat <- jan1 %m+% months(Mon)
@@ -138,6 +102,22 @@ for(Year in 1986:2019){
 }
 ```
 
+
+```{r}
+# Just to demonstrate the difference of the data between downloaded by month (as in the above answer) and downloaded by year.
+
+library(dplyr)
+
+data_DlByYear <- data.frame()
+
+for(Year in 1985:2019){
+  data1 <- ncdc(datasetid='GSOM', stationid = 'GHCND:ASN00091245', datatypeid= c('TMAX', 'TMIN', 'TAVG'), startdate = paste(Year, "01", "01", sep = "-"), enddate = paste(Year, "12", "31", sep = "-"))
+  data_DlByYear <- rbind(data_DlByYear, data1[[2]])
+}
+
+setdiff(data, data_DlByYear)
+```
+
 *Hints:*  
 
 + Request a token from rnoaa. Make a .Rprofile text file (no extension) containing:  
@@ -148,38 +128,25 @@ and store it at the top of your project directory.
 
 **4) Calculate the average annual temperature and the number of months used to generate that mean from #3 above (years without data can be excluded).  Report in a table, for example:**
 ```{r}
-yrs <- c()
-tavg <- c()
-mons <- c()
+library(kableExtra)
+
+year_vector <- c()
+tavg_vector <- c()
+mons_vector <- c()
 
 for(Year in 1985:2019){
   subset.data <- data[(data$datatype == "TAVG") & (grepl(Year, data$date)), "value"]
   Tavg <- mean(subset.data$value)
   Mons <- nrow(subset.data)
   
-  yrs <- c(yrs, Year)
-  tavg <- c(tavg, Tavg)
-  mons <- c(mons, Mons)
+  year_vector <- c(year_vector, Year)
+  tavg_vector <- c(tavg_vector, Tavg)
+  mons_vector <- c(mons_vector, Mons)
 }
 
-table <- data.frame("Year" = yrs, "Tavg" = tavg, "Mons" = mons)
+table <- data.frame("Year" = year_vector, "Tavg" = tavg_vector, "Mons" = mons_vector)
 table <- na.omit(table)
 table %>%
   kable(digits=3) %>%
   kable_styling()
 ```
-
-
-
-```{r, echo = FALSE}
-yrs <- c(1985, 1986, 1990)
-tavg <- c(12.90750, 12.39750, 11.73167)
-mons <- c(4, 12, 6)
-my_table2 <- data.frame("Year" = yrs, "Tavg" = tavg, "Mons" = mons)
-my_table2 %>%
-  kable(digits=3) %>%
-  kable_styling()
-```
-
-
-
