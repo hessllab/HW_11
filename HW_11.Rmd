@@ -1,7 +1,7 @@
 ---
-title: "HW_11"
-author: "Amy Hessl"
-date: "11/8/2019"
+title: "hw11"
+author: "Jaimee Pyron"
+date: "11/21/2019"
 output: html_document
 ---
 
@@ -19,19 +19,35 @@ data(Titanic) will return a 4-d array resulting from the cross-tabulation of 220
 **1) Using the R data Titanic, use apply to answer the following:**  
 
 + Were rates of survival higher among children or adults?  
+```{r, echo = FALSE}
+children = Titanic[,,1,, drop = FALSE]
+adults = Titanic[,,2,, drop = FALSE]
+children_survived = Titanic[,,1,2, drop = FALSE]
+adults_survived = Titanic[,,2,2, drop = FALSE]
+children_rate = sum(children_survived)/sum(children)
+adults_rate = sum(adults_survived)/sum(adults)
+```
+
 + Were rates of survival higher among men or women?  
+```{r, echo = FALSE}
+total_gender = apply(Titanic, 2, sum)
+survivors = Titanic[,,,2, drop = FALSE]
+agg_survivors = apply(survivors, 2, sum)
+agg_survivors[1:2]/total_gender[1:2]
+```
 
 #### lapply
 **2) Some insect species can only survive if daily temperatures stay above some temperature.  Write a function that takes two arguments, a data frame and a temperature that returns a TRUE when the tmin > X and a FALSE when tmin is < X, where X is the threshold temperature.  Have the function then add a logical vector to each daily climate data frame reporting whether that threshold was exceeded (TRUE) or not (FALSE). Apply this function across all three of the daily data frames provided in /data. For each data frame, your results might look like:**
 
 ```{r, echo = FALSE}
-col_names <- c("pdate",  "ppt",    "tmin",   "tmean",  "tmax",   "thresh")
-vals <- c(1981-01-01, 3.78, -4.3,  -1.9,  0.5,  "FALSE")
-names(vals) <- col_names
-my_table <- data.frame(t(vals))
-my_table %>%
-  kable() %>%
-  kable_styling()
+daily_temp <- function(data_path, temp){
+  data <- read.csv(data_path, col.names = c("pdate", "ppt", "tmin", "tmean", "tmax"), skip = 10, header = TRUE)
+  data$survival <- as.logical(data$tmin>temp)
+  return(data)
+}
+
+dat_list <- c("data/cv_grid1_monthly.csv", "data/cv_grid2_monthly.csv", "data/cv_grid3_monthly.csv")
+lapply(dat_list, daily_temp, 5)
 ```
 
 *Hints:*  
@@ -42,24 +58,22 @@ my_table %>%
 
 **3) Write a loop to extract Cape Grim monthly temperature data (GHCN) for 1985-2019 using rnoaa.**
 
-*Hints:*  
-
-+ Request a token from rnoaa. Make a .Rprofile text file (no extension) containing:  
-```options(noaakey="your_noaa_token")``` 
-and store it at the top of your project directory.    
-+ stationid='GHCND:ASN00091245'  
-+ Not all years have data!   
+```{r, echo = FALSE}
+library(rnoaa)
+years <- 1985:2019
+data <- data.frame()
+for (year in years){
+  temp <- ncdc(datasetid = 'GSOM', stationid = 'GHCND:ASN00091245', datatypeid = "TAVG", startdate = paste0(year,"-01-01"), enddate = paste0(year,"-12-31"), add_units = TRUE)
+  data <- temp$data
+} 
+```
 
 **4) Calculate the average annual temperature and the number of months used to generate that mean from #3 above (years without data can be excluded).  Report in a table, for example:**
 ```{r, echo = FALSE}
-yrs <- c(1985, 1986, 1990)
-tavg <- c(12.90750, 12.39750, 11.73167)
-mons <- c(4, 12, 6)
-my_table2 <- data.frame("Year" = yrs, "Tavg" = tavg, "Mons" = mons)
-my_table2 %>%
-  kable(digits=3) %>%
-  kable_styling()
+daily_temp <- function(data_path, temp){
+  data <- read.csv(data_path, col.names = c("pdate", "ppt", "tmin", "tmean", "tmax"), skip = 10, header = TRUE)
+  data$survival <- as.logical(data$tmin>temp)
+  return(data)
+}
 ```
-
-
 
