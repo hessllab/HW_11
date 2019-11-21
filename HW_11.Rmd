@@ -103,6 +103,40 @@ my_table %>%
 + Write an apply function to 'apply' your function across all the data frames in the list.  
 
 **3) Write a loop to extract Cape Grim monthly temperature data (GHCN) for 1985-2019 using rnoaa.**
+```{r}
+library(rnoaa)
+library(lubridate)
+source("APIkey.Rprofile")
+```
+Datatype ID?
+
+```{r}
+# this works!
+data1 <- ncdc(datasetid='GSOM', stationid = 'GHCND:ASN00091245', datatypeid= c('TMAX', 'TMIN', 'TAVG'), startdate = "1985-09-01", enddate = "1985-09-30")
+data <- data1[[2]]
+
+for (Mon in 0:2) {
+  oct1 <- ymd(paste(1985, "10", "01", sep = "-"))
+  monstat <- oct1 %m+% months(Mon)
+  oct31 <- ymd(paste(1985, "10", "31", sep = "-"))
+  monend <- oct31 %m+% months(Mon)
+  
+  data1 <- ncdc(datasetid='GSOM', stationid = 'GHCND:ASN00091245', datatypeid= c('TMAX', 'TMIN', 'TAVG'), startdate = monstat, enddate = monend)
+  data <- rbind(data, data1[[2]])
+}
+
+for(Year in 1986:2019){
+  for (Mon in 0:11) {
+  jan1 <- ymd(paste(Year, "01", "01", sep = "-"))
+  monstat <- jan1 %m+% months(Mon)
+  jan31 <- ymd(paste(Year, "01", "31", sep = "-"))
+  monend <- jan31 %m+% months(Mon)
+
+  data1 <- ncdc(datasetid='GSOM', stationid = 'GHCND:ASN00091245', datatypeid= c('TMAX', 'TMIN', 'TAVG'), startdate = monstat, enddate = monend)
+  data <- rbind(data, data1[[2]])
+  }
+}
+```
 
 *Hints:*  
 
@@ -113,6 +147,30 @@ and store it at the top of your project directory.
 + Not all years have data!   
 
 **4) Calculate the average annual temperature and the number of months used to generate that mean from #3 above (years without data can be excluded).  Report in a table, for example:**
+```{r}
+yrs <- c()
+tavg <- c()
+mons <- c()
+
+for(Year in 1985:2019){
+  subset.data <- data[(data$datatype == "TAVG") & (grepl(Year, data$date)), "value"]
+  Tavg <- mean(subset.data$value)
+  Mons <- nrow(subset.data)
+  
+  yrs <- c(yrs, Year)
+  tavg <- c(tavg, Tavg)
+  mons <- c(mons, Mons)
+}
+
+table <- data.frame("Year" = yrs, "Tavg" = tavg, "Mons" = mons)
+table <- na.omit(table)
+table %>%
+  kable(digits=3) %>%
+  kable_styling()
+```
+
+
+
 ```{r, echo = FALSE}
 yrs <- c(1985, 1986, 1990)
 tavg <- c(12.90750, 12.39750, 11.73167)
