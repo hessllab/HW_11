@@ -1,7 +1,7 @@
 ---
-title: "HW_11"
-author: "Amy Hessl"
-date: "11/8/2019"
+title: "hw11"
+author: "Jaimee Pyron"
+date: "11/21/2019"
 output: html_document
 ---
 
@@ -10,11 +10,19 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r eval=FALSE}
-# To run the following answer, please install "kableExtra", "rnoaa" and "lubridate" packages if you haven't installed them.
+# To run the following answer, please install "kableExtra", "rnoaa", "lubridate", and "dplyr" packages if you haven't installed them.
 install.packages("kableExtra")
 install.packages("rnoaa")
 install.packages("lubridate")
+install.packages("dplyr")
 ```
+```{r}
+library(kableExtra)
+library(rnoaa)
+library(lubridate)
+library(dplyr)
+```
+
 
 #### apply
 data(Titanic) will return a 4-d array resulting from the cross-tabulation of 2201 observations on 4 variables.  The data were originally collected by the British Board of Trade in their investigations related to the sinking of the Titanic.
@@ -22,129 +30,133 @@ data(Titanic) will return a 4-d array resulting from the cross-tabulation of 220
 **1) Using the R data Titanic, use apply to answer the following:**  
 + Were rates of survival higher among children or adults?
 ```{r}  
+# Commpress the Titanic data into 2 dimension format by selectiong 3rd dimension (Age) and 4th dimension (Survival).
 survival_byAge <- apply(Titanic, c(3, 4), sum)
+# Divide the number of people survived by the total number of people for each age category.
 children_rate <- survival_byAge[3]/(survival_byAge[1]+survival_byAge[3])
 adults_rate <- survival_byAge[4]/(survival_byAge[2]+survival_byAge[4])
 
+# Showing the above results.
 children_rate
 adults_rate
 ```  
 
 + Were rates of survival higher among men or women? 
 ```{r}  
+# Commpress the Titanic data into 2 dimension format by selectiong 2nd dimension (Sex) and 4th dimension (Survival).
 survival_byGender <- apply(Titanic, c(2, 4), sum)
-male_rate <- survival_byGender[3]/(survival_byGender[1,3])
+# Divide the number of people survived by the total number of people for each gender category.
+male_rate <- survival_byGender[3]/(survival_byGender[1]+survival_byGender[3])
 female_rate <- survival_byGender[4]/(survival_byGender[2]+survival_byGender[4])
 
+# Showing the above results.
 male_rate
 female_rate
 ```  
 
+
 #### lapply
 **2) Some insect species can only survive if daily temperatures stay above some temperature.  Write a function that takes two arguments, a data frame and a temperature that returns a TRUE when the tmin > X and a FALSE when tmin is < X, where X is the threshold temperature.  Have the function then add a logical vector to each daily climate data frame reporting whether that threshold was exceeded (TRUE) or not (FALSE). Apply this function across all three of the daily data frames provided in /data. For each data frame, your results might look like:**
 ```{r}
-library(kableExtra)
-
+# Function that works for a single csv file. "tmin" column in the input file will be compared to the input Temp value and a logical vector will be appeded to the input file as a new column named "thresh".
 threshold_eval <- function(Data, Temp){
-  thresh_vector <- Data$tmin > Temp
-  table_output <- cbind(Data, thresh=thresh_vector)
-  kable(table_output) %>%
+  Data$thresh <- as.logical(Data$tmin > Temp)
+  kable(Data) %>%
     kable_styling()
 }
 
-threshold_eval_lapply <- function(Path, Temp){
-  glob.path <- paste0(Path, "*", ".csv")
-  dataFiles <- lapply(Sys.glob(glob.path), read.csv, col.names = c("pdate",  "ppt",    "tmin",   "tmean",  "tmax"), skip=10)
-  lapply(dataFiles, threshold_eval, Temp)
+# FUnction that reads multiple csv files in a folder specified by "Data_Path" argument and applies the above "threshold_eval" function to all the csv files.
+threshold_eval_lapply <- function(Data_Path, Temp){
+  glob.path <- paste0(Data_Path, "*", ".csv")
+  dat_list <- lapply(Sys.glob(glob.path), read.csv, col.names = c("pdate", "ppt", "tmin", "tmean", "tmax"), skip=10, header = TRUE)
+  lapply(dat_list, threshold_eval, Temp)
 }
-```
-```{r}
+
 # Usage example
-threshold_eval_lapply(Path = "./data/", Temp = 5)
+threshold_eval_lapply(Data_Path = "./data/", Temp = 5)
 ```
 
 *Hints:*  
-
 + Read in the prism daily data files in /data using your prismDat function you made in class.    
 + Write a function that works for a single data frame from the list.  
 + Write an apply function to 'apply' your function across all the data frames in the list.  
 
+
 **3) Write a loop to extract Cape Grim monthly temperature data (GHCN) for 1985-2019 using rnoaa.**
 
-Somehow, data downloaded by year is shorter than the data downloaded by month. The missing data are shown after the answer for this question. This is why our answer is written to download data by month, which is computationary heavier but more accurate.
- 
+Somehow, data downloaded by year is shorter than the data downloaded by month. This is why our answer is written to download the data by month, which is computationary a little heavier but can get more accurate data. The missing data are shown after the answer for this question. 
 ```{r}
-data_test <- data.frame()
-
-for(Year in 1985:2019){
-  data1 <- ncdc(datasetid='GSOM', stationid = 'GHCND:ASN00091245', datatypeid= c('TMAX', 'TMIN', 'TAVG'), startdate = paste(Year, "01", "01", sep = "-"), enddate = paste(Year, "12", "31", sep = "-"))
-  data_test <- rbind(data_test, data1[[2]])
-  }
-```
-
-```{r}
-library(rnoaa)
-library(lubridate)
+# Read .Rprofile that stores API key.
 source("APIkey.Rprofile")
 
+# Create an empty data.frame to fill in downloaded data later.
 data <- data.frame()
 
+# A loop to download Cape Grim temperatures from 1985 to 2019.
 for(Year in 1985:2019){
+  
+  # A loop to create startdate and enddate of 1 month range for 12 months. `ymd` function from lubridate package will convert dates in character format into POSIXct format.
   for (Mon in 0:11) {
-  jan1 <- ymd(paste(Year, "01", "01", sep = "-"))
+  jan1 <- ymd(paste0(Year, "-01-01"))
   monstat <- jan1 %m+% months(Mon)
-  jan31 <- ymd(paste(Year, "01", "31", sep = "-"))
+  jan31 <- ymd(paste0(Year, "-01-31"))
   monend <- jan31 %m+% months(Mon)
-
+  # "data1" covers maximum, minimum, and average Cape Grim temperatures for a month.
   data1 <- ncdc(datasetid='GSOM', stationid = 'GHCND:ASN00091245', datatypeid= c('TMAX', 'TMIN', 'TAVG'), startdate = monstat, enddate = monend)
-  data <- rbind(data, data1[[2]])
+  # Since "data1" is a list of "meta" and "data", the latter will be appended to the data.frame created before.
+  data <- rbind(data, data1$data)
   }
+
 }
 ```
 
 
 ```{r}
-# Just to demonstrate the difference of the data between downloaded by month (as in the above answer) and downloaded by year.
-
-library(dplyr)
+# The following codes are here just to show how many data are missing when downloaded by year compared to downloaded by month (as in the above answer).
 
 data_DlByYear <- data.frame()
 
 for(Year in 1985:2019){
-  data1 <- ncdc(datasetid='GSOM', stationid = 'GHCND:ASN00091245', datatypeid= c('TMAX', 'TMIN', 'TAVG'), startdate = paste(Year, "01", "01", sep = "-"), enddate = paste(Year, "12", "31", sep = "-"))
-  data_DlByYear <- rbind(data_DlByYear, data1[[2]])
+  data1 <- ncdc(datasetid='GSOM', stationid = 'GHCND:ASN00091245', datatypeid= c('TMAX', 'TMIN', 'TAVG'), startdate = paste0(Year, "-01-01"), enddate = paste0(Year, "-12-31"))
+  data_DlByYear <- rbind(data_DlByYear, data1$data)
 }
 
 setdiff(data, data_DlByYear)
 ```
 
 *Hints:*  
-
 + Request a token from rnoaa. Make a .Rprofile text file (no extension) containing:  
 ```options(noaakey="your_noaa_token")``` 
 and store it at the top of your project directory.    
 + stationid='GHCND:ASN00091245'  
 + Not all years have data!   
 
+
 **4) Calculate the average annual temperature and the number of months used to generate that mean from #3 above (years without data can be excluded).  Report in a table, for example:**
 ```{r}
-library(kableExtra)
-
+# Create vectors to store data below.
 year_vector <- c()
 tavg_vector <- c()
 mons_vector <- c()
 
+# A loop to extract target data for each year from the "data" created in question 3 and append them into the above empty vectors.
 for(Year in 1985:2019){
+  # Average temperatures are extracted as rows that have datatype of "TAVG" and each year can be specified by using `grepl` function on "date" column as it selects rows that partially match with "Year" variable.
   subset.data <- data[(data$datatype == "TAVG") & (grepl(Year, data$date)), "value"]
+  # Get an average of average temperature values in a year. 
   Tavg <- mean(subset.data$value)
+  # Number of rows of "subset.data" is the number of months used in the average calculation.
   Mons <- nrow(subset.data)
   
+  # Append year, average temperature value, and number of months used in the calculation into the empty vector created at the begining.
   year_vector <- c(year_vector, Year)
   tavg_vector <- c(tavg_vector, Tavg)
   mons_vector <- c(mons_vector, Mons)
 }
 
+# Create a data.frame with the vectors above.
 table <- data.frame("Year" = year_vector, "Tavg" = tavg_vector, "Mons" = mons_vector)
+# Delete rows with NA values.
 table <- na.omit(table)
 table %>%
   kable(digits=3) %>%
