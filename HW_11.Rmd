@@ -54,6 +54,8 @@ for(year in 1985:2019){
   data = rbind(data, ncdc(datasetid = 'GSOM', stationid = 'GHCND:ASN00091245', datatypeid = "TAVG", startdate = start, enddate = end)[["data"]])
   Sys.sleep(0.2)
 }
+```
+```
 data
 ```
 
