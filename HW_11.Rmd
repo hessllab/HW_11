@@ -88,7 +88,10 @@ Somehow, data downloaded by the year is shorter than the data downloaded by mont
 ```{r}
 # Read .Rprofile that stores API key.
 source("APIkey.Rprofile")
+options(noaakey="ntPPaQdvFYbFApLWkSzRMOvzqqhxmNOr")
+```
 
+```{r}
 # Create an empty data.frame to fill in downloaded data later.
 data <- data.frame()
 
@@ -160,5 +163,26 @@ table <- data.frame("Year" = year_vector, "Tavg" = tavg_vector, "Mons" = mons_ve
 table <- na.omit(table)
 table %>%
   kable(digits=3) %>%
+  kable_styling()
+```
+
+
+I had a less complicated solution - note my variables differ - this won't run on your data directly
+
+```{r, echo=FALSE}
+test <- bind_rows(Grim_T) #requires dplyr
+#or
+test2 <- do.call(rbind, Grim_T)
+```
+
+Calculate the mean T for each year
+```{r}
+test2$year <- year(test2$date)
+year_mn <- aggregate(value ~ year, data=test2, FUN = "mean")
+count <- aggregate(value ~ year, data=test2, FUN = length)
+CapeG_Tavg <- data.frame("Year" = year_mn$year, "Tavg" = year_mn$value, "Mons" = count$value)
+CapeG_Tavg_tbl <- head(CapeG_Tavg, 3)
+CapeG_Tavg_tbl %>%
+  kable() %>%
   kable_styling()
 ```
