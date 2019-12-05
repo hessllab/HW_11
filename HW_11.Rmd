@@ -21,7 +21,7 @@ Were rates of survival higher among men or women?
 apply(Titanic, c(2,4), sum)
 ```
 Rates of survival were higher among women than men.
-
+AH: Need to create a sum by row and then divide yes by total to get rates.
 
 **2) Some insect species can only survive if daily temperatures stay above some temperature.  Write a function that takes two arguments, a data frame and a temperature that returns a TRUE when the tmin > X and a FALSE when tmin is < X, where X is the threshold temperature.  Have the function then add a logical vector to each daily climate data frame reporting whether that threshold was exceeded (TRUE) or not (FALSE). Apply this function across all three of the daily data frames provided in /data. For each data frame, your results might look like:**
 
@@ -43,37 +43,43 @@ tcheck_all = function(data_list, threshold){
   return(lapply(data_list, tcheck, threshold = threshold))
 }
 ```
-
+AH: A stronger answer would demonatrate how these functions work as in:
+```{r}
+prism_dat <- load_data ("data/")
+tcheck(prism_dat[[1]], 0) # for single data frame
+tcheck_all(prism_dat, 0) # for a list of dataframes
+```
 **3) Write a loop to extract Cape Grim monthly temperature data (GHCN) for 1985-2019 using rnoaa.**
   
 ```{r}
 data = data.frame()
-for(year in 1985:2019){
+for(year in 1985:1987){ #to limit my downloads!
   start = paste0(as.character(year), '-01-01')
   end = paste0(as.character(year), '-12-31')
   data = rbind(data, ncdc(datasetid = 'GSOM', stationid = 'GHCND:ASN00091245', datatypeid = "TAVG", startdate = start, enddate = end)[["data"]])
-  Sys.sleep(0.2)
+  Sys.sleep(0.2) #nice one!!!!
 }
 ```
-```
+```{r}
 data
 ```
 
 **4) Calculate the average annual temperature and the number of months used to generate the mean from #3 above (years without data can be excluded).  Report in a table.**
 
-```
+```{r}
 install.packages("kableExtra")
 ```
-```
+```{r}
 library(knitr)
 library(kableExtra)
 ```
-```
-{r, echo = FALSE}
+
+```{r, echo = FALSE}
 yearmean = function(yeardata){
   return(data.frame(T_average = mean(yeardata$value), n_months = nrow(yeardata)))
 }
 ```
+
 ```{r}
 data$year = as.integer(substr(data$date, 1, 4))
 yearlist = split(data, data$year)
